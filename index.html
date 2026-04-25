@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "primary": "#4c99e6",
+          "background-light": "#fdfcfb",
+          "background-dark": "#111921",
+        },
+        fontFamily: { "display": ["Plus Jakarta Sans", "sans-serif"] },
+        borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+      },
+    },
+  }
+</script>
+<style>
+  .dot-pattern {
+    background-image: radial-gradient(circle, #e2e8f0 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  .soft-glow-blue   { box-shadow: 0 0 15px rgba(76,153,230,0.3);  border: 1px solid rgba(76,153,230,0.4); }
+  .soft-glow-yellow { box-shadow: 0 0 15px rgba(250,204,21,0.3);  border: 1px solid rgba(250,204,21,0.4); }
+  .soft-glow-pink   { box-shadow: 0 0 15px rgba(244,114,182,0.3); border: 1px solid rgba(244,114,182,0.4); }
+  .soft-glow-purple { box-shadow: 0 0 15px rgba(168,85,247,0.3);  border: 1px solid rgba(168,85,247,0.4); }
+
+  /* Modal */
+  #game-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(6px);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+  #game-modal.open { display: flex; }
+
+  #modal-box {
+    background: #fff;
+    border-radius: 1.5rem;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.25);
+    position: relative;
+    width: 380px;
+  }
+
+  #modal-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  #modal-title {
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #1e293b;
+    letter-spacing: 0.1em;
+  }
+
+  #modal-score-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #f1f5f9;
+    padding: 0.3rem 0.8rem;
+    border-radius: 9999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #475569;
+  }
+
+  #close-btn {
+    background: #f1f5f9;
+    border: none;
+    border-radius: 9999px;
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+  }
+  #close-btn:hover { background: #e2e8f0; }
+
+  #snake-canvas {
+    border-radius: 1rem;
+    display: block;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+  }
+
+  #modal-controls {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    text-align: center;
+    line-height: 1.8;
+  }
+</style>
+</head>
+<body class="bg-background-light font-display text-slate-900 min-h-screen dot-pattern">
+
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+<div class="layout-container flex h-full grow flex-col">
+
+<!-- Header -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-slate-200/60 bg-background-light/80 backdrop-blur-sm px-10 py-4 sticky top-0 z-50">
+  <div class="flex items-center gap-3 text-slate-900">
+    <div class="flex items-center justify-center bg-primary rounded-lg p-1.5 text-white">
+      <span class="material-symbols-outlined text-2xl">videogame_asset</span>
+    </div>
+    <h2 class="text-slate-900 text-xl font-bold leading-tight tracking-tight">GAME ROOM</h2>
+  </div>
+  <div class="flex flex-1 justify-end items-center gap-8">
+    <nav class="flex items-center gap-8">
+      <a class="text-slate-600 hover:text-primary text-sm font-semibold transition-colors" href="#">Games</a>
+      <a class="text-slate-600 hover:text-primary text-sm font-semibold transition-colors" href="#">Leaderboards</a>
+      <a class="text-slate-600 hover:text-primary text-sm font-semibold transition-colors" href="#">Community</a>
+      <a class="text-slate-600 hover:text-primary text-sm font-semibold transition-colors" href="#">Store</a>
+    </nav>
+    <button class="flex items-center justify-center rounded-full h-10 w-10 bg-slate-100 text-slate-600 hover:bg-primary/10 hover:text-primary transition-all">
+      <span class="material-symbols-outlined">person</span>
+    </button>
+  </div>
+</header>
+
+<!-- Main -->
+<main class="flex-1 flex flex-col items-center justify-center px-10 max-w-[1400px] mx-auto w-full pt-12 pb-8">
+  <div class="w-full mb-12 text-center">
+    <h1 class="text-slate-900 tracking-tight text-5xl font-extrabold leading-tight mb-3">Pick Your Challenge</h1>
+    <p class="text-slate-500 text-lg">Revisit the classics in a modern arcade space.</p>
+  </div>
+
+  <!-- Cards -->
+  <div class="relative w-full overflow-visible">
+    <!-- Left Arrow -->
+    <button onclick="scrollCards(-1)" id="scroll-left" class="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center text-slate-500 hover:text-primary hover:shadow-xl transition-all -translate-x-2" style="display:none;">
+      &#8592;
+    </button>
+    <!-- Right Arrow -->
+    <button onclick="scrollCards(1)" id="scroll-right" class="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center text-slate-500 hover:text-primary hover:shadow-xl transition-all translate-x-2">
+      &#8594;
+    </button>
+    <div id="cards-container" class="flex gap-8 overflow-x-auto pb-12 pt-4 px-4 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+
+      <!-- Tetris -->
+      <div onclick="openTetris()" class="flex flex-col flex-shrink-0 w-72 h-[480px] bg-white rounded-xl soft-glow-blue p-8 items-center justify-between group cursor-pointer hover:-translate-y-2 transition-transform duration-300">
+        <div class="flex flex-col items-center gap-8 mt-4 w-full">
+          <div class="w-24 h-24 bg-blue-50 rounded-xl flex items-center justify-center">
+            <span class="material-symbols-outlined text-5xl text-blue-400">grid_view</span>
+          </div>
+          <div class="text-center">
+            <h3 class="text-slate-900 text-2xl font-bold tracking-wider mb-1">TETRIS</h3>
+            <p class="text-slate-400 text-xs font-bold tracking-[0.2em] uppercase">Insert Coin</p>
+          </div>
+        </div>
+        <div class="w-full aspect-video rounded-lg bg-blue-50/50 flex items-center justify-center border border-blue-100">
+          <div class="flex gap-1">
+            <div class="w-3 h-3 bg-blue-400 rounded-sm"></div>
+            <div class="w-3 h-3 bg-blue-400 rounded-sm"></div>
+            <div class="w-3 h-3 bg-blue-400 rounded-sm"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Snake -->
+      <div onclick="openSnake()" class="flex flex-col flex-shrink-0 w-72 h-[480px] bg-white rounded-xl soft-glow-yellow p-8 items-center justify-between group cursor-pointer hover:-translate-y-2 transition-transform duration-300">
+        <div class="flex flex-col items-center gap-8 mt-4 w-full">
+          <div class="w-24 h-24 bg-yellow-50 rounded-xl flex items-center justify-center">
+            <span class="material-symbols-outlined text-5xl text-yellow-400">gesture</span>
+          </div>
+          <div class="text-center">
+            <h3 class="text-slate-900 text-2xl font-bold tracking-wider mb-1">SNAKE</h3>
+            <p class="text-slate-400 text-xs font-bold tracking-[0.2em] uppercase">Insert Coin</p>
+          </div>
+        </div>
+        <div class="w-full aspect-video rounded-lg bg-yellow-50/50 flex items-center justify-center border border-yellow-100">
+          <div class="w-12 h-1 bg-yellow-400 rounded-full"></div>
+        </div>
+      </div>
+
+      <!-- Pong -->
+      <div onclick="openPong()" class="flex flex-col flex-shrink-0 w-72 h-[480px] bg-white rounded-xl soft-glow-pink p-8 items-center justify-between group cursor-pointer hover:-translate-y-2 transition-transform duration-300">
+        <div class="flex flex-col items-center gap-8 mt-4 w-full">
+          <div class="w-24 h-24 bg-pink-50 rounded-xl flex items-center justify-center">
+            <span class="material-symbols-outlined text-5xl text-pink-400">sports_tennis</span>
+          </div>
+          <div class="text-center">
+            <h3 class="text-slate-900 text-2xl font-bold tracking-wider mb-1">PONG</h3>
+            <p class="text-slate-400 text-xs font-bold tracking-[0.2em] uppercase">Insert Coin</p>
+          </div>
+        </div>
+        <div class="w-full aspect-video rounded-lg bg-pink-50/50 flex items-center justify-center border border-pink-100">
+          <div class="flex justify-between w-full px-4">
+            <div class="w-1 h-6 bg-pink-400 rounded-full"></div>
+            <div class="w-2 h-2 bg-pink-400 rounded-full"></div>
+            <div class="w-1 h-6 bg-pink-400 rounded-full"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Word Attack -->
+      <div onclick="openWordAttack()" class="flex flex-col flex-shrink-0 w-72 h-[480px] bg-white rounded-xl soft-glow-purple p-8 items-center justify-between group cursor-pointer hover:-translate-y-2 transition-transform duration-300">
+        <div class="flex flex-col items-center gap-8 mt-4 w-full">
+          <div class="w-24 h-24 bg-purple-50 rounded-xl flex items-center justify-center">
+            <span class="material-symbols-outlined text-5xl text-purple-400">spellcheck</span>
+          </div>
+          <div class="text-center">
+            <h3 class="text-slate-900 text-2xl font-bold tracking-wider mb-1">WORD ATTACK</h3>
+            <p class="text-slate-400 text-xs font-bold tracking-[0.2em] uppercase">Insert Coin</p>
+          </div>
+        </div>
+        <div class="w-full aspect-video rounded-lg bg-purple-50/50 flex items-center justify-center border border-purple-100">
+          <div class="text-purple-400 font-bold text-xl">A B C</div>
+        </div>
+      </div>
+
+      <!-- Egg Catcher -->
+      <div onclick="openEggCatcher()" class="flex flex-col flex-shrink-0 w-72 h-[480px] bg-white rounded-xl p-8 items-center justify-between group cursor-pointer hover:-translate-y-2 transition-transform duration-300" style="box-shadow: 0 0 15px rgba(255,180,0,0.3); border: 1px solid rgba(255,180,0,0.4);">
+        <div class="flex flex-col items-center gap-8 mt-4 w-full">
+          <div class="w-24 h-24 rounded-xl flex items-center justify-center" style="background:#fff8e1;">
+            <span style="font-size:3rem;">🥚</span>
+          </div>
+          <div class="text-center">
+            <h3 class="text-slate-900 text-2xl font-bold tracking-wider mb-1">EGG CATCHER</h3>
+            <p class="text-slate-400 text-xs font-bold tracking-[0.2em] uppercase">Insert Coin</p>
+          </div>
+        </div>
+        <div class="w-full aspect-video rounded-lg flex items-center justify-center border" style="background:#fff8e1;border-color:#ffe082;">
+          <span style="font-size:1.5rem;">🧺</span>
+        </div>
+      </div>
+
+      <!-- Egg Hop -->
+      <div onclick="openEggHop()" class="flex flex-col flex-shrink-0 w-72 h-[480px] bg-white rounded-xl p-8 items-center justify-between group cursor-pointer hover:-translate-y-2 transition-transform duration-300" style="box-shadow: 0 0 15px rgba(100,200,100,0.3); border: 1px solid rgba(100,200,100,0.4);">
+        <div class="flex flex-col items-center gap-8 mt-4 w-full">
+          <div class="w-24 h-24 rounded-xl flex items-center justify-center" style="background:#f0fff0;">
+            <span style="font-size:3rem;">🐣</span>
+          </div>
+          <div class="text-center">
+            <h3 class="text-slate-900 text-2xl font-bold tracking-wider mb-1">EGG HOP</h3>
+            <p class="text-slate-400 text-xs font-bold tracking-[0.2em] uppercase">Insert Coin</p>
+          </div>
+        </div>
+        <div class="w-full aspect-video rounded-lg flex items-center justify-center border" style="background:#f0fff0;border-color:#b2dfdb;">
+          <span style="font-size:1.5rem;">⬆️</span>
+        </div>
+      </div>
+
+      <!-- 4 in a Row -->
+      <div onclick="openFourInRow()" class="flex flex-col flex-shrink-0 w-72 h-[480px] bg-white rounded-xl p-8 items-center justify-between group cursor-pointer hover:-translate-y-2 transition-transform duration-300" style="box-shadow: 0 0 15px rgba(239,83,80,0.3); border: 1px solid rgba(239,83,80,0.4);">
+        <div class="flex flex-col items-center gap-8 mt-4 w-full">
+          <div class="w-24 h-24 rounded-xl flex items-center justify-center" style="background:#fff5f5;">
+            <span style="font-size:3rem;">🔴</span>
+          </div>
+          <div class="text-center">
+            <h3 class="text-slate-900 text-2xl font-bold tracking-wider mb-1">4 IN A ROW</h3>
+            <p class="text-slate-400 text-xs font-bold tracking-[0.2em] uppercase">Insert Coin</p>
+          </div>
+        </div>
+        <div class="w-full aspect-video rounded-lg flex items-center justify-center border gap-1" style="background:#fff5f5;border-color:#ffcdd2;">
+          <span style="font-size:1.2rem;">🔴🟡🔴</span>
+        </div>
+      </div>
+
+      <!-- Battleship -->
+      <div onclick="openBattleship()" class="flex flex-col flex-shrink-0 w-72 h-[480px] bg-white rounded-xl p-8 items-center justify-between group cursor-pointer hover:-translate-y-2 transition-transform duration-300" style="box-shadow: 0 0 15px rgba(59,130,246,0.3); border: 1px solid rgba(59,130,246,0.4);">
+        <div class="flex flex-col items-center gap-8 mt-4 w-full">
+          <div class="w-24 h-24 rounded-xl flex items-center justify-center" style="background:#eff6ff;">
+            <span style="font-size:3rem;">🚢</span>
+          </div>
+          <div class="text-center">
+            <h3 class="text-slate-900 text-2xl font-bold tracking-wider mb-1">BATTLESHIP</h3>
+            <p class="text-slate-400 text-xs font-bold tracking-[0.2em] uppercase">Insert Coin</p>
+          </div>
+        </div>
+        <div class="w-full aspect-video rounded-lg flex items-center justify-center border" style="background:#eff6ff;border-color:#bfdbfe;">
+          <span style="font-size:1.5rem;">💥</span>
+        </div>
+      </div>
+
+      <!-- Hangman -->
+      <div onclick="openHangman()" class="flex flex-col flex-shrink-0 w-72 h-[480px] bg-white rounded-xl p-8 items-center justify-between group cursor-pointer hover:-translate-y-2 transition-transform duration-300" style="box-shadow: 0 0 15px rgba(168,85,247,0.3); border: 1px solid rgba(168,85,247,0.4);">
+        <div class="flex flex-col items-center gap-8 mt-4 w-full">
+          <div class="w-24 h-24 rounded-xl flex items-center justify-center" style="background:#faf5ff;">
+            <span style="font-size:3rem;">🪤</span>
+          </div>
+          <div class="text-center">
+            <h3 class="text-slate-900 text-2xl font-bold tracking-wider mb-1">HANGMAN</h3>
+            <p class="text-slate-400 text-xs font-bold tracking-[0.2em] uppercase">Insert Coin</p>
+          </div>
+        </div>
+        <div class="w-full aspect-video rounded-lg flex items-center justify-center border" style="background:#faf5ff;border-color:#e9d5ff;">
+          <span style="font-size:1.5rem;">_ _ _ _</span>
+        </div>
+      </div>
+
+      <!-- Higher or Lower -->
+      <div onclick="openHigherOrLower()" class="flex flex-col flex-shrink-0 w-72 h-[480px] bg-white rounded-xl p-8 items-center justify-between group cursor-pointer hover:-translate-y-2 transition-transform duration-300" style="box-shadow: 0 0 15px rgba(251,191,36,0.3); border: 1px solid rgba(251,191,36,0.4);">
+        <div class="flex flex-col items-center gap-8 mt-4 w-full">
+          <div class="w-24 h-24 rounded-xl flex items-center justify-center" style="background:#fffbeb;">
+            <span style="font-size:3rem;">🃏</span>
+          </div>
+          <div class="text-center">
+            <h3 class="text-slate-900 text-2xl font-bold tracking-wider mb-1">HIGHER OR LOWER</h3>
+            <p class="text-slate-400 text-xs font-bold tracking-[0.2em] uppercase">Insert Coin</p>
+          </div>
+        </div>
+        <div class="w-full aspect-video rounded-lg flex items-center justify-center border" style="background:#fffbeb;border-color:#fde68a;">
+          <span style="font-size:1.5rem;">⬆️ ⬇️</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<!-- Footer -->
+<footer class="flex flex-col gap-8 px-10 border-t border-slate-200 bg-white/40 pt-8 pb-12">
+  <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-primary">videogame_asset</span>
+      <span class="font-bold text-slate-900">GAME ROOM</span>
+    </div>
+    <div class="flex flex-wrap items-center justify-center gap-10">
+      <a class="text-slate-500 hover:text-primary text-sm font-medium transition-colors" href="#">Terms of Service</a>
+      <a class="text-slate-500 hover:text-primary text-sm font-medium transition-colors" href="#">Privacy Policy</a>
+      <a class="text-slate-500 hover:text-primary text-sm font-medium transition-colors" href="#">Contact Us</a>
+    </div>
+  </div>
+  <div class="text-center">
+    <p class="text-slate-400 text-sm font-medium">© 2024 GAME ROOM. A playful arcade soul in a modern world.</p>
+  </div>
+</footer>
+
+</div>
+</div>
+
+<!-- 4 in a Row Modal -->
+<div id="fourinrow-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);z-index:200;align-items:center;justify-content:center;">
+  <div style="background:#1a237e;border-radius:1.5rem;padding:1.5rem;display:flex;flex-direction:column;gap:1rem;box-shadow:0 25px 60px rgba(0,0,0,0.5);width:540px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-weight:700;font-size:1.1rem;color:white;letter-spacing:0.1em;">🔴 4 IN A ROW</span>
+      <div style="display:flex;align-items:center;gap:0.6rem;">
+        <div style="background:rgba(255,255,255,0.1);padding:0.3rem 0.8rem;border-radius:9999px;font-size:0.82rem;color:white;" id="fourinrow-status">Your turn 🔴</div>
+        <button onclick="closeFourInRow()" style="background:rgba(255,255,255,0.1);border:none;border-radius:9999px;width:36px;height:36px;cursor:pointer;font-size:1rem;color:#aaa;">✕</button>
+      </div>
+    </div>
+    <canvas id="fourinrow-canvas" width="490" height="500" style="border-radius:0.75rem;display:block;width:100%;cursor:pointer;"></canvas>
+  </div>
+</div>
+
+<!-- Battleship Modal -->
+<div id="battleship-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);z-index:200;align-items:center;justify-content:center;">
+  <div style="background:#0d0d2b;border-radius:1.5rem;padding:1.5rem;display:flex;flex-direction:column;gap:1rem;box-shadow:0 25px 60px rgba(0,0,0,0.5);width:800px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-weight:700;font-size:1.1rem;color:white;letter-spacing:0.1em;">🚢 BATTLESHIP</span>
+      <div style="display:flex;align-items:center;gap:0.6rem;">
+        <div style="background:rgba(255,255,255,0.08);padding:0.3rem 0.8rem;border-radius:9999px;font-size:0.82rem;color:#aaa;" id="battleship-status">Place your ships · R to rotate</div>
+        <button onclick="closeBattleship()" style="background:rgba(255,255,255,0.1);border:none;border-radius:9999px;width:36px;height:36px;cursor:pointer;font-size:1rem;color:#aaa;">✕</button>
+      </div>
+    </div>
+    <canvas id="battleship-canvas" width="760" height="400" style="border-radius:0.75rem;display:block;width:100%;cursor:crosshair;"></canvas>
+    <div style="font-size:0.7rem;color:#555;text-align:center;">Click to place ships · R to rotate · Click enemy grid (right) to attack 💥</div>
+  </div>
+</div>
+
+<!-- Hangman Modal -->
+<div id="hangman-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(6px);z-index:200;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:1.5rem;padding:1.5rem;display:flex;flex-direction:column;gap:1rem;box-shadow:0 25px 60px rgba(0,0,0,0.2);width:580px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-weight:700;font-size:1.1rem;color:#1e293b;letter-spacing:0.1em;">🪤 HANGMAN</span>
+      <div style="display:flex;align-items:center;gap:0.6rem;">
+        <div style="background:#f1f5f9;padding:0.3rem 0.8rem;border-radius:9999px;font-size:0.82rem;color:#475569;" id="hangman-status">Type letters to guess!</div>
+        <button onclick="closeHangman()" style="background:#f1f5f9;border:none;border-radius:9999px;width:36px;height:36px;cursor:pointer;font-size:1rem;color:#64748b;">✕</button>
+      </div>
+    </div>
+    <canvas id="hangman-canvas" width="540" height="340" style="border-radius:0.75rem;display:block;width:100%;"></canvas>
+  </div>
+</div>
+
+<!-- Higher or Lower Modal -->
+<div id="higherorlower-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);z-index:200;align-items:center;justify-content:center;">
+  <div style="background:#0f2027;border-radius:1.5rem;padding:1.5rem;display:flex;flex-direction:column;gap:1rem;box-shadow:0 25px 60px rgba(0,0,0,0.5);width:480px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-weight:700;font-size:1.1rem;color:white;letter-spacing:0.1em;">🃏 HIGHER OR LOWER</span>
+      <div style="display:flex;align-items:center;gap:0.6rem;">
+        <div style="background:rgba(255,255,255,0.08);padding:0.3rem 0.8rem;border-radius:9999px;font-size:0.82rem;color:#aaa;">⭐ <span id="hol-score">0</span></div>
+        <div style="background:rgba(255,255,255,0.08);padding:0.3rem 0.8rem;border-radius:9999px;font-size:0.82rem;color:#aaa;" id="hol-status">Higher or Lower?</div>
+        <button onclick="closeHigherOrLower()" style="background:rgba(255,255,255,0.1);border:none;border-radius:9999px;width:36px;height:36px;cursor:pointer;font-size:1rem;color:#aaa;">✕</button>
+      </div>
+    </div>
+    <canvas id="hol-canvas" width="440" height="380" style="border-radius:0.75rem;display:block;width:100%;cursor:pointer;"></canvas>
+  </div>
+</div>
+
+<!-- Egg Hop Modal -->
+<div id="eggHop-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(6px);z-index:200;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:1.5rem;padding:1.5rem;display:flex;flex-direction:column;gap:1rem;box-shadow:0 25px 60px rgba(0,0,0,0.2);width:420px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-weight:700;font-size:1.1rem;color:#1e293b;letter-spacing:0.1em;">🐣 EGG HOP</span>
+      <div style="display:flex;align-items:center;gap:0.6rem;">
+        <div style="background:#f1f5f9;padding:0.3rem 0.8rem;border-radius:9999px;font-size:0.82rem;font-weight:600;color:#475569;">⬆️ <span id="egghop-score">0</span></div>
+        <div style="background:#f1f5f9;padding:0.3rem 0.8rem;border-radius:9999px;font-size:0.82rem;" id="egghop-lives">❤️❤️❤️</div>
+        <button onclick="closeEggHop()" style="background:#f1f5f9;border:none;border-radius:9999px;width:36px;height:36px;cursor:pointer;font-size:1rem;color:#64748b;display:flex;align-items:center;justify-content:center;">✕</button>
+      </div>
+    </div>
+    <canvas id="egghop-canvas" width="360" height="480" style="border-radius:0.75rem;display:block;width:100%;"></canvas>
+    <div style="font-size:0.7rem;color:#94a3b8;text-align:center;">
+      ← → to move · Hop on platforms to go higher · 3 falls = game over 🐣
+    </div>
+  </div>
+</div>
+
+<!-- Egg Catcher Modal -->
+<div id="egg-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(6px);z-index:200;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:1.5rem;padding:1.5rem;display:flex;flex-direction:column;gap:1rem;box-shadow:0 25px 60px rgba(0,0,0,0.2);width:520px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-weight:700;font-size:1.1rem;color:#1e293b;letter-spacing:0.1em;">🥚 EGG CATCHER</span>
+      <div style="display:flex;align-items:center;gap:0.6rem;">
+        <div style="background:#f1f5f9;padding:0.3rem 0.8rem;border-radius:9999px;font-size:0.82rem;font-weight:600;color:#475569;">🥚 <span id="egg-score">0</span></div>
+        <div style="background:#f1f5f9;padding:0.3rem 0.8rem;border-radius:9999px;font-size:0.82rem;" id="egg-lives">❤️❤️❤️</div>
+        <div style="background:#f1f5f9;padding:0.3rem 0.8rem;border-radius:9999px;font-size:0.82rem;font-weight:600;color:#475569;">⏱ <span id="egg-timer">2:00</span></div>
+        <button onclick="closeEggCatcher()" style="background:#f1f5f9;border:none;border-radius:9999px;width:36px;height:36px;cursor:pointer;font-size:1rem;color:#64748b;display:flex;align-items:center;justify-content:center;">✕</button>
+      </div>
+    </div>
+    <canvas id="egg-canvas" width="480" height="360" style="border-radius:0.75rem;display:block;width:100%;"></canvas>
+    <div style="font-size:0.7rem;color:#94a3b8;text-align:center;">
+      ← → arrow keys to move basket &nbsp;·&nbsp; 3 misses = game over &nbsp;·&nbsp; Speed increases every 10 eggs 🥚
+    </div>
+  </div>
+</div>
+
+<!-- Word Attack Modal -->
+<div id="word-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);z-index:200;align-items:center;justify-content:center;">
+  <div style="background:#111;border-radius:1.5rem;padding:1.5rem;display:flex;flex-direction:column;gap:1rem;box-shadow:0 25px 60px rgba(0,0,0,0.5);width:540px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-weight:700;font-size:1.1rem;color:white;letter-spacing:0.1em;">⌨️ WORD ATTACK</span>
+      <div style="display:flex;align-items:center;gap:0.6rem;">
+        <div style="background:rgba(255,255,255,0.08);padding:0.3rem 0.8rem;border-radius:9999px;font-size:0.8rem;font-weight:600;color:#aaa;">⭐ <span id="word-score">0</span></div>
+        <div style="background:rgba(255,255,255,0.08);padding:0.3rem 0.8rem;border-radius:9999px;font-size:0.8rem;font-weight:600;color:#aaa;">LVL <span id="word-level">1</span></div>
+        <div style="background:rgba(255,255,255,0.08);padding:0.3rem 0.8rem;border-radius:9999px;font-size:0.8rem;" id="word-lives">❤️❤️❤️</div>
+        <div style="background:rgba(0,255,136,0.1);padding:0.3rem 0.8rem;border-radius:9999px;font-size:0.75rem;font-weight:700;" id="word-emp" style="color:#00ff88;">EMP READY</div>
+        <button onclick="closeWordAttack()" style="background:rgba(255,255,255,0.1);border:none;border-radius:9999px;width:36px;height:36px;cursor:pointer;font-size:1rem;color:#aaa;display:flex;align-items:center;justify-content:center;">✕</button>
+      </div>
+    </div>
+    <canvas id="word-canvas" width="480" height="380" style="border-radius:0.75rem;display:block;width:100%;"></canvas>
+    <div style="font-size:0.7rem;color:#555;text-align:center;">
+      Type the falling words to destroy them &nbsp;·&nbsp; <span style="color:#00ff88;">SPACE</span> = EMP blast (30s cooldown) &nbsp;·&nbsp; 3 misses = game over
+    </div>
+  </div>
+</div>
+
+<!-- Pong Modal -->
+<div id="pong-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);z-index:200;align-items:center;justify-content:center;">
+  <div style="background:#111;border-radius:1.5rem;padding:1.5rem;display:flex;flex-direction:column;gap:1rem;box-shadow:0 25px 60px rgba(0,0,0,0.5);width:520px;">
+    <!-- header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-weight:700;font-size:1.1rem;color:white;letter-spacing:0.1em;">🏓 PONG</span>
+      <div style="display:flex;align-items:center;gap:0.75rem;">
+        <div style="background:rgba(255,255,255,0.08);padding:0.3rem 0.9rem;border-radius:9999px;font-size:0.85rem;font-weight:700;color:white;display:flex;gap:0.75rem;align-items:center;">
+          <span id="pong-player-score" style="color:white;">0</span>
+          <span style="color:#555;">—</span>
+          <span id="pong-cpu-score" style="color:rgba(255,100,100,0.9);">0</span>
+        </div>
+        <div style="background:rgba(255,255,255,0.08);padding:0.3rem 0.8rem;border-radius:9999px;font-size:0.82rem;font-weight:600;color:#aaa;display:flex;gap:0.4rem;">
+          <span>⏱</span><span id="pong-timer">2:00</span>
+        </div>
+        <button onclick="closePong()" style="background:rgba(255,255,255,0.1);border:none;border-radius:9999px;width:36px;height:36px;cursor:pointer;font-size:1rem;color:#aaa;display:flex;align-items:center;justify-content:center;">✕</button>
+      </div>
+    </div>
+    <canvas id="pong-canvas" width="480" height="320" style="border-radius:0.75rem;display:block;width:100%;"></canvas>
+    <div style="font-size:0.7rem;color:#555;text-align:center;">
+      ↑ ↓ or W S to move &nbsp;·&nbsp; First to 5 points wins &nbsp;·&nbsp; CPU paddle in <span style="color:rgba(255,100,100,0.7);">red</span>
+    </div>
+  </div>
+</div>
+
+<!-- Tetris Modal -->
+<div id="tetris-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);z-index:200;align-items:center;justify-content:center;">
+  <div style="background:#1a1a2e;border-radius:1.5rem;padding:1.5rem;display:flex;flex-direction:column;gap:1rem;box-shadow:0 25px 60px rgba(0,0,0,0.4);position:relative;width:420px;">
+    <!-- header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-weight:700;font-size:1.1rem;color:white;letter-spacing:0.1em;">🟦 TETRIS</span>
+      <div style="display:flex;align-items:center;gap:0.75rem;">
+        <div style="background:rgba(255,255,255,0.1);padding:0.3rem 0.8rem;border-radius:9999px;font-size:0.82rem;font-weight:600;color:#aaa;display:flex;gap:0.5rem;">
+          <span>⭐</span><span id="tetris-score">0</span>
+        </div>
+        <div style="background:rgba(255,255,255,0.1);padding:0.3rem 0.8rem;border-radius:9999px;font-size:0.82rem;font-weight:600;color:#aaa;display:flex;gap:0.5rem;">
+          <span>📋</span><span id="tetris-lines">0</span>
+        </div>
+        <button onclick="closeTetris()" style="background:rgba(255,255,255,0.1);border:none;border-radius:9999px;width:36px;height:36px;cursor:pointer;font-size:1rem;color:#aaa;display:flex;align-items:center;justify-content:center;">✕</button>
+      </div>
+    </div>
+    <!-- game area -->
+    <div style="display:flex;gap:1rem;align-items:flex-start;">
+      <canvas id="tetris-canvas" width="288" height="564" style="border-radius:0.75rem;display:block;"></canvas>
+      <div style="display:flex;flex-direction:column;gap:0.75rem;">
+        <div style="background:rgba(255,255,255,0.05);border-radius:0.75rem;padding:0.75rem;text-align:center;">
+          <div style="color:#888;font-size:0.65rem;font-weight:600;letter-spacing:0.1em;margin-bottom:0.5rem;">NEXT</div>
+          <canvas id="tetris-next" width="96" height="96"></canvas>
+        </div>
+        <div style="background:rgba(255,255,255,0.05);border-radius:0.75rem;padding:0.75rem;font-size:0.65rem;color:#666;line-height:2;">
+          <div style="color:#888;font-weight:600;margin-bottom:0.25rem;">CONTROLS</div>
+          ← → Move<br>↑ / Z Rotate<br>↓ Soft drop<br>Space Hard drop
+        </div>
+      </div>
+    </div>
+    <div style="font-size:0.7rem;color:#555;text-align:center;">
+      🟦 Clear 4 lines at once for max points (Tetris!)
+    </div>
+  </div>
+</div>
+
+<!-- Snake Modal -->
+<div id="game-modal">
+  <div id="modal-box">
+    <div id="modal-header">
+      <div style="display:flex;align-items:center;gap:0.75rem;">
+        <span id="modal-title">🐍 SNAKE</span>
+        <div id="modal-score-wrap">
+          <span>🍎</span>
+          <span id="score-display">0</span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.75rem;">
+        <div id="modal-score-wrap">
+          <span>⏱</span>
+          <span id="timer-display" style="transition: color 0.3s; font-weight:600;">2:00</span>
+        </div>
+        <button id="close-btn" onclick="closeSnake()">✕</button>
+      </div>
+    </div>
+    <canvas id="snake-canvas" width="340" height="380"></canvas>
+    <div id="modal-controls">
+      Arrow keys or WASD to move &nbsp;·&nbsp; Wraps around edges · Only self-collision kills<br>
+      <span style="color:#4c99e6;font-weight:600;">🍎 Eat more apples to go faster — not time</span>
+    </div>
+  </div>
+</div>
+
+<script src="snake.js"></script>
+<script src="tetris.js"></script>
+<script src="pong.js"></script>
+<script src="wordattack.js"></script>
+<script src="eggcatcher.js"></script>
+<script src="egghop.js"></script>
+<script src="fourinrow.js"></script>
+<script src="battleship.js"></script>
+<script src="hangman.js"></script>
+<script src="higherorlower.js"></script>
+<script>
+  // 4 in a Row
+  const fourModal = document.getElementById('fourinrow-modal');
+  function openFourInRow() { fourModal.style.display='flex'; FourInRowGame.init(document.getElementById('fourinrow-canvas'), document.getElementById('fourinrow-status')); }
+  function closeFourInRow() { fourModal.style.display='none'; FourInRowGame.destroy(); }
+  fourModal.addEventListener('click', e => { if(e.target===fourModal) closeFourInRow(); });
+
+  // Battleship
+  const bsModal = document.getElementById('battleship-modal');
+  function openBattleship() { bsModal.style.display='flex'; BattleshipGame.init(document.getElementById('battleship-canvas'), document.getElementById('battleship-status')); }
+  function closeBattleship() { bsModal.style.display='none'; BattleshipGame.destroy(); }
+  bsModal.addEventListener('click', e => { if(e.target===bsModal) closeBattleship(); });
+
+  // Hangman
+  const hmModal = document.getElementById('hangman-modal');
+  function openHangman() { hmModal.style.display='flex'; HangmanGame.init(document.getElementById('hangman-canvas'), document.getElementById('hangman-status')); }
+  function closeHangman() { hmModal.style.display='none'; HangmanGame.destroy(); }
+  hmModal.addEventListener('click', e => { if(e.target===hmModal) closeHangman(); });
+
+  // Higher or Lower
+  const holModal = document.getElementById('higherorlower-modal');
+  function openHigherOrLower() { holModal.style.display='flex'; HigherOrLowerGame.init(document.getElementById('hol-canvas'), document.getElementById('hol-status'), document.getElementById('hol-score')); }
+  function closeHigherOrLower() { holModal.style.display='none'; HigherOrLowerGame.destroy(); }
+  holModal.addEventListener('click', e => { if(e.target===holModal) closeHigherOrLower(); });
+
+  // Scroll arrows
+  const cardsContainer = document.getElementById('cards-container');
+  const scrollLeft = document.getElementById('scroll-left');
+  const scrollRight = document.getElementById('scroll-right');
+
+  function scrollCards(dir) {
+    cardsContainer.scrollBy({ left: dir * 320, behavior: 'smooth' });
+  }
+
+  function updateArrows() {
+    scrollLeft.style.display = cardsContainer.scrollLeft > 10 ? 'flex' : 'none';
+    scrollRight.style.display = cardsContainer.scrollLeft < cardsContainer.scrollWidth - cardsContainer.clientWidth - 10 ? 'flex' : 'none';
+  }
+
+  cardsContainer.addEventListener('scroll', updateArrows);
+  updateArrows();
+
+  // Snake
+  const modal = document.getElementById('game-modal');
+  const canvas = document.getElementById('snake-canvas');
+  const scoreEl = document.getElementById('score-display');
+  const timerEl = document.getElementById('timer-display');
+  function openSnake() { modal.classList.add('open'); SnakeGame.init(canvas, scoreEl, timerEl); }
+  function closeSnake() { modal.classList.remove('open'); SnakeGame.destroy(); }
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeSnake(); });
+
+  // Tetris
+  const tetrisModal = document.getElementById('tetris-modal');
+  function openTetris() {
+    tetrisModal.style.display = 'flex';
+    TetrisGame.init(document.getElementById('tetris-canvas'), document.getElementById('tetris-next'), document.getElementById('tetris-score'), document.getElementById('tetris-lines'));
+  }
+  function closeTetris() { tetrisModal.style.display = 'none'; TetrisGame.destroy(); }
+  tetrisModal.addEventListener('click', (e) => { if (e.target === tetrisModal) closeTetris(); });
+
+  // Pong
+  const pongModal = document.getElementById('pong-modal');
+  function openPong() {
+    pongModal.style.display = 'flex';
+    PongGame.init(document.getElementById('pong-canvas'), document.getElementById('pong-player-score'), document.getElementById('pong-cpu-score'), document.getElementById('pong-timer'));
+  }
+  function closePong() { pongModal.style.display = 'none'; PongGame.destroy(); }
+  pongModal.addEventListener('click', (e) => { if (e.target === pongModal) closePong(); });
+
+  // Word Attack
+  const wordModal = document.getElementById('word-modal');
+  function openWordAttack() {
+    wordModal.style.display = 'flex';
+    WordAttackGame.init(document.getElementById('word-canvas'), document.getElementById('word-score'), document.getElementById('word-level'), document.getElementById('word-lives'), document.getElementById('word-emp'));
+  }
+  function closeWordAttack() { wordModal.style.display = 'none'; WordAttackGame.destroy(); }
+  wordModal.addEventListener('click', (e) => { if (e.target === wordModal) closeWordAttack(); });
+
+  // Egg Hop
+  const eggHopModal = document.getElementById('eggHop-modal');
+  function openEggHop() {
+    eggHopModal.style.display = 'flex';
+    EggHopGame.init(document.getElementById('egghop-canvas'), document.getElementById('egghop-score'), document.getElementById('egghop-lives'));
+  }
+  function closeEggHop() { eggHopModal.style.display = 'none'; EggHopGame.destroy(); }
+  eggHopModal.addEventListener('click', (e) => { if (e.target === eggHopModal) closeEggHop(); });
+
+  // Egg Catcher
+  const eggModal = document.getElementById('egg-modal');
+  function openEggCatcher() {
+    eggModal.style.display = 'flex';
+    EggCatcherGame.init(document.getElementById('egg-canvas'), document.getElementById('egg-score'), document.getElementById('egg-lives'), document.getElementById('egg-timer'));
+  }
+  function closeEggCatcher() { eggModal.style.display = 'none'; EggCatcherGame.destroy(); }
+  eggModal.addEventListener('click', (e) => { if (e.target === eggModal) closeEggCatcher(); });
+</script>
+
+</body></html>
