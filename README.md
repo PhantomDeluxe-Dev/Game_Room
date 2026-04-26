@@ -2,7 +2,7 @@
 
 A clean, modern browser-based arcade featuring classic mini-games built using HTML, TailwindCSS, and JavaScript. This project recreates nostalgic gameplay with a sleek UI and modular architecture.
 
-[View my live portfolio here!](https://phantomdeluxe-dev.github.io/Project-1/)
+[View my live portfolio here!](https://phantomdeluxe-dev.github.io/Game_Room/)
 ---
 
 ## 🚀 Features
